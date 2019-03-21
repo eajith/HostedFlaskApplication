@@ -12,8 +12,12 @@ from flask import Flask, render_template, request, redirect, jsonify, url_for
 from flask import flash
 from sqlalchemy import create_engine, asc
 from sqlalchemy.orm import sessionmaker, joinedload
-from modelsNew import Base, Category, Items, User
+import sys
+sys.path.append('/var/www/FlaskApp/FlaskApp')
+from modelsNew import Base, Category, Items, Users
 from sqlalchemy import desc
+
+
 
 
 from flask import session as login_session
@@ -27,18 +31,17 @@ import httplib2
 import json
 from flask import make_response
 import requests
-
+import psycopg2
 import datetime
 
 app = Flask(__name__)
 CLIENT_ID = json.loads(
-    open('client_secrets.json', 'r').read())['web']['client_id']
+    open('/var/www/FlaskApp/FlaskApp/client_secrets.json', 'r').read())['web']['client_id']
 APPLICATION_NAME = "ItemCatalog"
 
 
 # setting up the database
-engine = create_engine('sqlite:///itemcategoryDBs.db',
-                       connect_args={'check_same_thread': False})
+engine = create_engine('postgresql://catalog:catalog@localhost/catalogdb')
 Base.metadata.bind = engine
 
 
@@ -69,7 +72,7 @@ def gconnect():
 
     try:
         # Upgrade the authorization code into a credentials object
-        oauth_flow = flow_from_clientsecrets('client_secrets.json', scope='')
+        oauth_flow = flow_from_clientsecrets('/var/www/FlaskApp/FlaskApp/client_secrets.json', scope='')
         oauth_flow.redirect_uri = 'postmessage'
         credentials = oauth_flow.step2_exchange(code)
     except FlowExchangeError:
@@ -83,7 +86,8 @@ def gconnect():
     url = ('https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=%s'
            % access_token)
     h = httplib2.Http()
-    result = json.loads(h.request(url, 'GET')[1])
+    buf = h.request(url,'GET')[1]
+    result = json.loads(buf.decode('utf-8'))
     # If there was an error in the access token info, abort.
     if result.get('error') is not None:
         response = make_response(json.dumps(result.get('error')), 500)
@@ -191,24 +195,24 @@ def gdisconnect():
 
 # Add new user to the database
 def createUser(login_session):
-    newUser = User(name=login_session['username'], email=login_session[
+    newUser = Users(name=login_session['username'], email=login_session[
                    'email'], picture=login_session['picture'])
     session.add(newUser)
     session.commit()
-    user = session.query(User).filter_by(email=login_session['email']).one()
+    user = session.query(Users).filter_by(email=login_session['email']).one()
     return user.id
 
 
 # return the user information for the user_id
 def getUserInfo(user_id):
-    user = session.query(User).filter_by(id=user_id).one()
+    user = session.query(Users).filter_by(id=user_id).one()
     return user
 
 
 # Return user_id for the email address
 def getUserID(email):
     try:
-        user = session.query(User).filter_by(email=email).one()
+        user = session.query(Users).filter_by(email=email).one()
         return user.id
     except BaseException:
         return None

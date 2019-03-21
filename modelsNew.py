@@ -1,5 +1,6 @@
 import os
 import sys
+import psycopg2
 from sqlalchemy import Column, ForeignKey, Integer, String, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
@@ -8,13 +9,13 @@ from sqlalchemy import create_engine
 Base = declarative_base()
 
 
-class User(Base):
-    __tablename__ = 'user'
+class Users(Base):
+    __tablename__ = 'users'
 
     id = Column(Integer, primary_key=True)
     name = Column(String(250), nullable=False)
     email = Column(String(250), nullable=False)
-    picture = Column(String(250))
+    picture = Column(String(2500))
 
 
 class Category(Base):
@@ -22,8 +23,8 @@ class Category(Base):
 
     id = Column(Integer, primary_key=True)
     name = Column(String(250), nullable=False)
-    user_id = Column(Integer, ForeignKey('user.id'))
-    user = relationship(User)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    user = relationship(Users)
 
     @property
     def serialize(self):
@@ -39,12 +40,12 @@ class Items(Base):
 
     title =Column(String(80), nullable = False)
     id = Column(Integer, primary_key = True)
-    Description = Column(String(250))
+    Description = Column(String(25000))
     upload_date = Column(DateTime,nullable=False)
     category_id = Column(Integer,ForeignKey('category.id'))
     category = relationship(Category,backref='items')
-    user_id = Column(Integer, ForeignKey('user.id'))
-    user = relationship(User)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    user = relationship(Users)
 
     @property
     def serialize(self):
@@ -56,7 +57,7 @@ class Items(Base):
         }
 
 
-engine = create_engine('postgresql://catalog:catalog@localhost/catalog')
+engine = create_engine('postgresql://catalog:catalog@localhost/catalogdb')
 
 
 Base.metadata.create_all(engine)
